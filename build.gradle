@@ -1,0 +1,87 @@
+buildscript {
+	ext {
+		springBootVersion = '1.4.1.RELEASE'
+	}
+	repositories {
+		mavenCentral()
+		jcenter()
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'spring-boot'
+apply plugin: 'groovy'
+apply plugin: 'org.asciidoctor.convert'
+
+jar {
+	baseName = 'demo'
+	version = '0.0.1-SNAPSHOT'
+}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+
+dependencies {
+	// compile('org.springframework.boot:spring-boot-starter')
+	compile("org.springframework.boot:spring-boot-starter-undertow:$springBootVersion")
+	compile("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
+	compile("org.springframework.boot:spring-boot-starter:$springBootVersion")
+	compile("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
+	compile('org.projectlombok:lombok:1.16.6')
+	compile('com.fasterxml.jackson.core:jackson-databind:2.7.6')
+	compile('com.fasterxml.jackson.core:jackson-core:2.7.6')
+	compile('com.fasterxml.jackson.core:jackson-annotations:2.7.6')
+	testCompile localGroovy()
+	testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	testCompile "org.codehaus.groovy.modules.http-builder:http-builder:0.5.2"
+	testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:'
+	testCompile "org.spockframework:spock-spring:1.0-groovy-2.4"
+	testCompile "cglib:cglib:3.1"
+	testCompile "org.ow2.asm:asm:4.2"
+}
+
+ext {
+	snippetsDir = file('src/docs/generated-snippets')
+}
+
+test {
+	outputs.dir snippetsDir
+}
+
+asciidoctor {
+	dependsOn test
+	sourceDir 'src/docs/'
+	outputDir "$projectDir/src/main/resources/public"
+	inputs.dir snippetsDir
+	backends 'html5'
+	attributes 'snippets': snippetsDir
+}
+
+task cleanTempDir(type: Delete) {
+	delete fileTree(dir: 'src/main/resources/public')
+	delete fileTree(dir: 'src/docs/generated-snippets')
+}
+
+clean {
+	dependsOn cleanTempDir
+}
+
+build {
+	dependsOn asciidoctor
+}
+
+task publish(type: GradleBuild) {
+	dependsOn asciidoctor
+	buildFile = file('publish.gradle')
+	tasks = ['publishGhPages']
+}

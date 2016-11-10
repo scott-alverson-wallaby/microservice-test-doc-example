@@ -1,0 +1,33 @@
+= Greeting REST Service API Guide
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 4
+:sectlinks:
+ 
+= Resources
+ 
+== Greeting REST Service
+ 
+The Greeting provides the entry point into the service.
+
+ 
+=== Accessing the greeting GET with default content
+ 
+==== Request structure
+ 
+include::{snippets}/nice/http-request.adoc[]
+ 
+==== Response fields
+ 
+include::{snippets}/nice/response-fields.adoc[]
+ 
+==== Example response
+ 
+include::{snippets}/nice/http-response.adoc[]
+ 
+==== CURL request
+ 
+include::{snippets}/nice/curl-request.adoc[]
+
