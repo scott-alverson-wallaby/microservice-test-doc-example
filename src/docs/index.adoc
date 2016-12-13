@@ -1,33 +1,62 @@
 = Greeting REST Service API Guide
-:doctype: book
-:icons: font
-:source-highlighter: highlightjs
-:toc: left
-:toclevels: 4
-:sectlinks:
- 
-= Resources
- 
-== Greeting REST Service
- 
-The Greeting provides the entry point into the service.
 
- 
-=== Accessing the greeting GET with default content
- 
-==== Request structure
- 
-include::{snippets}/nice/http-request.adoc[]
- 
+== Overview
+This API provides for greetings of various types and moods.
+
+== Paths
+
+=== GET /greeting
+
+==== Request fields
+
+include::{snippets}/get/request-parameters.adoc[]
+
+==== Sample Request
+
+include::{snippets}/get/http-request.adoc[]
+
 ==== Response fields
- 
-include::{snippets}/nice/response-fields.adoc[]
- 
-==== Example response
- 
-include::{snippets}/nice/http-response.adoc[]
- 
-==== CURL request
- 
-include::{snippets}/nice/curl-request.adoc[]
 
+include::{snippets}/get/response-fields.adoc[]
+
+==== Sample responses
+
+include::{snippets}/get/http-response.adoc[]
+
+include::{snippets}/get/bad/http-response.adoc[]
+
+==== CURL request
+
+include::{snippets}/get/curl-request.adoc[]
+
+==== POST /greeting
+
+include::{snippets}/post/http-request.adoc[]
+
+==== Response fields
+
+include::{snippets}/post/response-fields.adoc[]
+
+==== Example response
+
+include::{snippets}/post/http-response.adoc[]
+
+==== CURL request
+
+include::{snippets}/post/curl-request.adoc[]
+
+==== DELETE /greeting
+
+include::{snippets}/delete/http-request.adoc[]
+
+==== Response fields
+
+include::{snippets}/delete/response-fields.adoc[]
+
+==== Example response
+
+include::{snippets}/delete/http-response.adoc[]
+
+==== CURL request
+
+include::{snippets}/delete/curl-request.adoc[]

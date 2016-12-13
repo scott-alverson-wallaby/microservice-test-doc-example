@@ -1,8 +1,15 @@
-package com.example.service
+package com.example.controller
 
 import com.example.GreetingApplication
-import groovyx.net.http.RESTClient
+import com.example.bo.Greeting
+import com.example.controller.GreetingController
+import com.example.exception.MessingWithMyHappinessException
+import com.example.exception.controller.ExceptionAdvice
+import com.example.service.AttitudeService
+
 import org.junit.Rule
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport
+import org.springframework.context.support.StaticApplicationContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.test.context.ContextConfiguration
@@ -11,15 +18,15 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.restdocs.RestDocumentation
-import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint
 
@@ -30,7 +37,6 @@ import spock.lang.*
 @WebAppConfiguration
 class GreetingControllerSpec extends Specification {
 
-    def client
     def mockMvc
 
     @Autowired
@@ -41,86 +47,68 @@ class GreetingControllerSpec extends Specification {
 
 
     def setup() {
-        client = new RESTClient("http://localhost:8080/greeting")
         mockMvc = MockMvcBuilders.webAppContextSetup(this.context)
                 .apply(documentationConfiguration(this.restDocumentation))
                 .build()
     }
 
 
-    def "request a nice greeting"() {
-/*         when:
-       assert client != null
-        def resp = client.get(query: [greetingType: "nice"])
-
-        then:
-        resp.getStatus() == 200
-        resp.getContentType().equals("application/json")
-        resp.getData().get("greeting").equals("Hi, how are you today?")
-        */
-
+    def "get - ok - valid greeting request"() {
         when:
         ResultActions result = this.mockMvc.perform(get('/greeting').param('greetingType', 'nice'))
 
         then:
         result.andExpect(status().isOk())
                 .andExpect(jsonPath('greeting').value('Hi, how are you today?'))
-                .andDo(document("nice",
+                .andDo(document("controller/nice",
                     preprocessResponse(prettyPrint()),
                     responseFields(
                         fieldWithPath("greeting").description("The greeting received"))))
     }
 
-    def "request a nasty greeting"() {
-/*        when:
-        def resp = client.get(query: [greetingType: "nasty"])
+    def "get - bad request - elegant greeting from an angry person"() {
+        expect:
+        this.mockMvc.perform(get('/greeting').param('greetingType', "elegant").param('mood', 'angry'))
+                .andExpect(status().isBadRequest())
 
-        then:
-        resp.getStatus() == 200
-        resp.getContentType().equals("application/json")
-        resp.getData().get("greeting").equals("I'm too happy to be nasty.") */
-
-        when:
-        ResultActions result = this.mockMvc.perform(get('/greeting').param('greetingType', 'nasty'))
-
-        then:
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath('greeting').value('I\'m too happy to be nasty.')).andDo(document("nasty"))
     }
 
-    def "request an elegant greeting"() {
-        /*
-        when:
-        def resp = client.get(query: [greetingType: "elegant"])
-
-        then:
-        resp.getStatus() == 200
-        resp.getContentType().equals("application/json")
-        resp.getData().get("greeting").equals("How are you this fine day?")'
-        */
-
-        when:
-        ResultActions result = this.mockMvc.perform(get('/greeting').param('greetingType', 'elegant'))
-
-        then:
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath('greeting').value('How are you this fine day?')).andDo(document("elegant"))
+    def "get - bad request - invalid mood"() {
+        expect:
+        this.mockMvc.perform(get('/greeting').param('greetingType', "elegant").param('mood', 'blorfy'))
+                .andExpect(status().isBadRequest())
     }
 
-    def "request greetings from an angry person"() {
-/*        setup:
-        client.handler.failure = client.handler.success
+    def "post - attitude adjustment accepted"() {
+        expect:
+        this.mockMvc.perform(post('/greeting').param('source', 'anyone'))
+            .andExpect(status().isOk())
+    }
+
+    def "delete - ok"() {
+        setup:
+        def stubAttitudeService = Stub(AttitudeService)
+        GreetingController controller = new GreetingController(attitudeService: stubAttitudeService);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
 
         expect:
-        client.get(query: [greetingType: typeOfGreeting, mood: 'ANGRY']).getStatus() == status
-*/
-        expect:
-        this.mockMvc.perform(get('/greeting').param('greetingType', typeOfGreeting).param('mood', 'angry')).andExpect(status().is(status)).andDo(document("angry"))
+        this.mockMvc.perform(delete('/greeting'))
+                        .andExpect(status().isOk())
+    }
 
-        where:
-        typeOfGreeting || status
-        "nice"         || 200
-        "nasty"        || 200
-        "elegant"      || 400
+    def "delete - unauthorized"() {
+        setup:
+        def stubAttitudeService = Stub(AttitudeService)
+        stubAttitudeService.clearMood() >> {throw new MessingWithMyHappinessException()}
+        GreetingController controller = new GreetingController(attitudeService: stubAttitudeService);
+        StaticApplicationContext applicationContext = new StaticApplicationContext();
+        applicationContext.registerSingleton("exceptionHandler", ExceptionAdvice.class);
+        WebMvcConfigurationSupport webMvcConfigurationSupport = new WebMvcConfigurationSupport();
+        webMvcConfigurationSupport.setApplicationContext(applicationContext);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).
+                setHandlerExceptionResolvers(webMvcConfigurationSupport.handlerExceptionResolver()).build()
+
+        expect:
+        this.mockMvc.perform(delete('/greeting')).andExpect(status().isUnauthorized())
     }
 }

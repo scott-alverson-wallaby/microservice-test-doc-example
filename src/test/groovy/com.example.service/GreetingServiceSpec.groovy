@@ -1,7 +1,9 @@
 package com.example.service
 
-import com.example.datasource.GreetingDataSource
-import com.example.service.GreetingService.Mood
+
+import com.example.bo.Greeting
+import com.example.datasource.AttitudeDataSource
+import com.example.enumeration.Mood
 import com.example.exception.DirtyLookException
 
 import spock.lang.*
@@ -9,73 +11,97 @@ import spock.lang.*
 
 class GreetingServiceSpec extends Specification {
 
-    GreetingService greetingService = new GreetingService();
+
+    def greetingService;
+    def attitudeService;
+
+    def setup() {
+        greetingService = new GreetingService();
+        attitudeService = Mock(AttitudeService)
+        greetingService.setAttitudeService(attitudeService)
+    }
+
 
     def "get a nice greeting from the service"() {
+        setup:
+        attitudeService.getMood() >> Mood.HAPPY
+
         expect:
-        greetingService.getGreeting("nice").equals("Hi, how are you today?")
+        greetingService.getGreeting("nice", null).getText().equals("Hi, how are you today?")
     }
 
     def "get a nasty greeting from the service"() {
+        setup:
+        attitudeService.getMood() >> Mood.HAPPY
+
         expect:
-        greetingService.getGreeting("nasty").equals("I'm too happy to be nasty.")
+        greetingService.getGreeting("nasty", null).getText().equals("I'm too happy to be nasty.")
     }
 
     def "get an elegant greeting from the service"() {
+        setup:
+        attitudeService.getMood() >> Mood.HAPPY
+
         expect:
-        greetingService.getGreeting("elegant").equals("How are you this fine day?")
+        greetingService.getGreeting("elegant", null).getText().equals("How are you this fine day?")
     }
 
     def "try to get a nice greeting from the service when it's angry"() {
-        setup:
-        greetingService = new GreetingService(Mood.ANGRY)
-
         expect:
-        greetingService.getGreeting("nice").equals("Don't tell me to be nice, jerk!")
+        greetingService.getGreeting("nice", Mood.ANGRY).getText().equals("Don't tell me to be nice, jerk!")
     }
 
     def "try to get a nasty greeting from the service when it's angry"() {
-        given:
-        greetingService = new GreetingService(Mood.ANGRY)
-
         expect:
-        greetingService.getGreeting("nasty").equals("Take a long walk off a short pier!")
+        greetingService.getGreeting("nasty", Mood.ANGRY).getText().equals("Take a long walk off a short pier!")
     }
 
     def "try to get an elegant greeting from the service when it's angry"() {
-        given:
-        greetingService = new GreetingService(Mood.ANGRY)
-
         when:
-        greetingService.getGreeting("elegant")
+        greetingService.getGreeting("elegant", Mood.ANGRY)
 
         then:
         thrown(DirtyLookException)
     }
 
-    def "test happy behavior using explicit constructor"() {
-        given:
-        greetingService = new GreetingService(Mood.HAPPY)
+    def "test calm response"() {
+        setup:
+        attitudeService.getMood() >> Mood.CALM
 
         expect:
-        greetingService.getGreeting(greetingType).equals(greeting)
+        greetingService.getGreeting(greetingType, null).getText().equals("Have a calm, tranquil day - I sure am")
 
         where:
         greetingType << ["nice",
                          "nasty",
                          "elegant"]
-        greeting << ["Hi, how are you today?", "I'm too happy to be nasty.", "How are you this fine day?"]
     }
 
-    def "test service call to datasource"() {
+    @Unroll
+    def "test happy behavior using explicit parameter"() {
+        expect:
+        greetingService.getGreeting(greetingType, Mood.HAPPY).getText().equals(greeting)
+
+        where:
+        greetingType << ["nice",
+                         "nasty",
+                         "elegant"]
+        greeting << ["Hi, how are you today?",
+                     "I'm too happy to be nasty.",
+                     "How are you this fine day?"]
+    }
+
+    def "test explicit parameter overriding datasource"() {
         setup:
-        def greetingDataSource = Mock(GreetingDataSource)
-        greetingService.setGreetingDataSource(greetingDataSource)
+        attitudeService.getMood() >> Mood.HAPPY
 
-        when:
-        greetingService.getGreeting("nice")
+        expect:
+        greetingService.getGreeting(greetingType, mood).getText().equals(greeting)
 
-        then:
-        1 * greetingDataSource.getGreetingSuffix()
+        where:
+        greetingType |    mood     || greeting
+        "nice"       |  Mood.ANGRY || "Don't tell me to be nice, jerk!"
+        "elegant"    |  Mood.CALM  || "Have a calm, tranquil day - I sure am"
+        "nasty"      |  Mood.CALM  || "Have a calm, tranquil day - I sure am"
     }
 }

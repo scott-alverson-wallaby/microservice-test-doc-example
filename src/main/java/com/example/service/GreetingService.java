@@ -1,50 +1,53 @@
 package com.example.service;
 
-import com.example.datasource.GreetingDataSource;
+import com.example.bo.AttitudeAdjustmentResult;
+import com.example.bo.Greeting;
+import com.example.service.AttitudeService;
+import com.example.enumeration.Mood;
 import com.example.exception.DirtyLookException;
-/**
- * Created by alverson on 11/4/16.
- */
+
+
 public class GreetingService {
 
-    private Mood mood;
 
-    protected GreetingDataSource dataSource = new GreetingDataSource();
+    protected AttitudeService attitudeService = new AttitudeService();
 
-    public GreetingService()  {
-        mood = Mood.HAPPY;
-    }
 
-    public GreetingService(Mood mood) {
-        this.mood = mood;
-    }
-
-    public String getGreeting(String type) {
+    public Greeting getGreeting(String type, Mood updatedMood) throws DirtyLookException {
         String greeting;
+        Mood mood;
+
+        if (updatedMood != null) {
+            mood = updatedMood;
+            attitudeService.setMood(mood);
+        }
+        else {
+            mood = attitudeService.getMood();
+        }
 
         if (mood == Mood.ANGRY) {
             switch (type) {
                 case "nice": greeting = "Don't tell me to be nice, jerk!"; break;
-                case "elegant": throw new DirtyLookException();
+                case "elegant": throw new DirtyLookException("You can't be serious!");
                 default: greeting = "Take a long walk off a short pier!"; break;
             }
         }
-        else {
+        else if (mood == Mood.HAPPY) {
             switch (type) {
                 case "nasty": greeting =  "I'm too happy to be nasty."; break;
                 case "elegant": greeting = "How are you this fine day?"; break;
                 default: greeting = "Hi, how are you today?"; break;
             }
         }
+        else {
+            greeting = "Have a calm, tranquil day - I sure am";
+        }
 
-        return greeting + dataSource.getGreetingSuffix();
+        return Greeting.builder().text(greeting).build();
     }
 
-    protected void setGreetingDataSource(GreetingDataSource dataSource) {
-        this.dataSource = dataSource;
-    }
 
-    public enum Mood {
-        HAPPY, ANGRY;
+    protected void setAttitudeService(AttitudeService attitudeService) {
+        this.attitudeService = attitudeService;
     }
 }

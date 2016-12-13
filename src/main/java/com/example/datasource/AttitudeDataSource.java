@@ -12,7 +12,6 @@ public class AttitudeDataSource {
     Mood mood = Mood.HAPPY;
 
     public Mood getMood() {
-        System.out.println("current mood is " + mood);
         return mood;
     }
 
@@ -20,7 +19,6 @@ public class AttitudeDataSource {
 
         AttitudeAdjustmentResult result;
 
-        System.out.println("mood before adjustment=" + mood);
         if (source != null
                 && (source.equalsIgnoreCase("Dad")
                     || source.equalsIgnoreCase("Mom"))) {
@@ -34,9 +32,7 @@ public class AttitudeDataSource {
     }
 
     public void setMood(Mood mood) {
-
         this.mood = mood;
-        System.out.println("mood is now " + this.mood);
     }
 
     public void clearMood() throws MessingWithMyHappinessException {
